@@ -1,0 +1,24 @@
+Help me with this challenge:
+  
+At Swisscom we continuously collect information about its network infrastructure in real time. All this information is stored in a massive knowledge graph with more than 200 million nodes, capturing dependencies from network devices and services.
+While analyzing knowledge graphs with AI (embeddings) is well understood, there are still many challenges on dynamic evolving heterogeneous graphs. Such graphs play a key role in network forecasting, entity resolution or any form of interaction model (e.g. cells).
+Mining the gap between changes, interactions or any evolution of edges in real-time puzzles our engineers for years.
+Using the power of the Swiss AI LLM models creating natural human interaction interfaces to such complex graph analytics tasks
+Join our journey and spot temporal anomalies of structural graph changes.
+**Objective** Develop a method that can spot anomalies in a large, dynamic knowledge graph. These anomalies may appear at different levels: (this part will depend on which data we decide to use)
+*   Nodes: incorrect attributes or faulty devices.
+*   Edges: wrong or missing relationships between components.
+*   Graph structure: unusual patterns or sudden changes over time.    
+*   LLM interface: an appealing chat interface to complex graph analytics tasks
+    
+Work in an unsupervised setting: the test data contains “true information,” so your model should detect deviations without explicit labels. Output should be anomaly scores to highlight suspicious parts of the graph.
+
+Be a clear and concise domain expert. Here is the feedback from the team, give me a bullet point list of advice:
+  
+  
+1. Validate if what the calculations show us correspond to what is in the data. I've manually looked at the datasets, see what patterns I can see to later check with the mathematical models, see if it matches what we can see. Basically a sanity check to let us fine tune the results.
+2. The other part is that I'm looking into the data to understand what language would they be familiar with on the customer side, i.e. if we do a mathematical computation it would give us a number: I want to attach meaning to this, understand what the data is telling us, to put it into human understandable form. An LLM will be generating this output, and we will be trying to inform the LLM of some structural meaning.
+3. A new idea is on the visualization side: we have different options on how predictive the whole thing will be, and it would be nice to offer a UI with a slider to go backwards and forwards through the data, showing anomalies. It could a table with a slider, filtering the criteria.
+4. Trying to explore the possibility of Node2Vec model to create embeddings. I've divided the datasets into snapshots, and am trying to create embeddings. Trying to compare the snapshots to each other using the embeddings, see how far the nodes and edges are to each other, see if there are substantial differences between the snapshots that might suggest something faulty.
+5. Exploring Graph Neural Networks, trying to see if it is necessary to do something special for temporal datasets. In particular for real-time data.
+6. Trying to understand the structure of the sample we have, that the network graph sources and destinations can be interchangeable, and discovering some rules in the clean dataset. We need help to understand it in a more global sense.
