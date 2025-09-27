@@ -80,7 +80,7 @@ const Index = () => {
               Upload and explore your CSV data with interactive filtering
             </p>
           </div>
-          <Input1 value="Hello, world!"/>
+          <Input1 id="TextInput01" defaultValue='{"name":"Laptop","description":"MacBook Pro 16 inch","price":2499.99}'/>
           <HTTPPostButton/>
           <HTTPGetButton/>
           <CSVUpload onFileUpload={handleFileUpload} />

@@ -27,22 +27,31 @@ export const HTTPPostButton = ({ onFileUpload }: CSVUploadProps) => {
 
   const handleHTTPPostRequest = () => {
     
-    //-------> need up update the below to be HTTP POST!
-    fetch('http://localhost:8000/')
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json(); // or response.text() for plain text
-      //return document.getElementById("textfield").textContent=JSON.stringify(response.json());
+    console.log(document.getElementById("textfield").textContent);
+    
+    fetch("http://localhost:8000/items", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      content: document.getElementById("TextInput01").value
     })
-    .then(data => {
-      console.log(data);
-      document.getElementById("textfield").textContent=JSON.stringify(data);
-    })
-    .catch(error => {
-      console.error('Error:', error);
-    });
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log("Success:", data);
+    document.getElementById("textfield").textContent=JSON.stringify(data);
+  })
+  .catch(error => {
+    console.error("Error:", error);
+  });
+
 
   };
 
