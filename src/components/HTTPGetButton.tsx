@@ -36,7 +36,7 @@ export const HTTPGetButton = ({ onFileUpload }: CSVUploadProps) => {
     })
     .then(data => {
       console.log(data);
-      document.getElementById("textfield").textContent=JSON.stringify(data);
+      document.getElementById("HTTPGetResponseField").textContent=JSON.stringify(data);
     })
     .catch(error => {
       console.error('Error:', error);

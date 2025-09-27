@@ -27,7 +27,7 @@ export const HTTPPostButton = ({ onFileUpload }: CSVUploadProps) => {
 
   const handleHTTPPostRequest = () => {
     
-    console.log(document.getElementById("textfield").textContent);
+    console.log(document.getElementById("HTTPPostResponseField").textContent);
     
     fetch("http://localhost:8000/items", {
     method: "POST",
@@ -46,7 +46,7 @@ export const HTTPPostButton = ({ onFileUpload }: CSVUploadProps) => {
   })
   .then(data => {
     console.log("Success:", data);
-    document.getElementById("textfield").textContent=JSON.stringify(data);
+    document.getElementById("HTTPPostResponseField").textContent=JSON.stringify(data);
   })
   .catch(error => {
     console.error("Error:", error);

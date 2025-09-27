@@ -71,18 +71,24 @@ const Index = () => {
         <div className="flex justify-between items-center mb-8">
           <div className="space-y-2">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              CSV Data Viewer
+              Swisscom Anomaly Detector
             </h1>
-            <p className="text-muted-foreground text-lg">
-              Upload and explore your CSV data with interactive filtering
-            </p>
-            <p id="textfield" className="text-muted-foreground text-lg">
-              Upload and explore your CSV data with interactive filtering
-            </p>
+            <div className="flex justify-between items-center mb-8">
+              <HTTPGetButton/>
+              <p id="HTTPGetResponseField" className="text-muted-foreground text-lg">
+              (HTTP Get Response details will appear here)
+              </p>
+              
+            </div>
+            <div className="flex justify-between items-center mb-8">
+              <HTTPPostButton/>
+              <Input1 id="TextInput01" defaultValue='{"name":"Laptop","description":"MacBook Pro 16 inch","price":2499.99}'/>
+              <p id="HTTPPostResponseField" className="text-muted-foreground text-lg">
+              (HTTP POST Response details will appear here)
+              </p>
+            </div>
+            
           </div>
-          <Input1 id="TextInput01" defaultValue='{"name":"Laptop","description":"MacBook Pro 16 inch","price":2499.99}'/>
-          <HTTPPostButton/>
-          <HTTPGetButton/>
           <CSVUpload onFileUpload={handleFileUpload} />
         </div>
 
