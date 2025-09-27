@@ -1,0 +1,86 @@
+[
+  {
+    "timestamp_bin": 0,
+    "n_anomalies": 1564
+  },
+  {
+    "timestamp_bin": 50,
+    "n_anomalies": 142
+  },
+  {
+    "timestamp_bin": 100,
+    "n_anomalies": 78
+  },
+  {
+    "timestamp_bin": 150,
+    "n_anomalies": 122
+  },
+  {
+    "timestamp_bin": 200,
+    "n_anomalies": 112
+  },
+  {
+    "timestamp_bin": 250,
+    "n_anomalies": 118
+  },
+  {
+    "timestamp_bin": 300,
+    "n_anomalies": 92
+  },
+  {
+    "timestamp_bin": 350,
+    "n_anomalies": 91
+  },
+  {
+    "timestamp_bin": 400,
+    "n_anomalies": 89
+  },
+  {
+    "timestamp_bin": 450,
+    "n_anomalies": 97
+  },
+  {
+    "timestamp_bin": 500,
+    "n_anomalies": 90
+  },
+  {
+    "timestamp_bin": 550,
+    "n_anomalies": 81
+  },
+  {
+    "timestamp_bin": 600,
+    "n_anomalies": 78
+  },
+  {
+    "timestamp_bin": 650,
+    "n_anomalies": 70
+  },
+  {
+    "timestamp_bin": 700,
+    "n_anomalies": 84
+  },
+  {
+    "timestamp_bin": 750,
+    "n_anomalies": 86
+  },
+  {
+    "timestamp_bin": 800,
+    "n_anomalies": 116
+  },
+  {
+    "timestamp_bin": 850,
+    "n_anomalies": 85
+  },
+  {
+    "timestamp_bin": 900,
+    "n_anomalies": 110
+  },
+  {
+    "timestamp_bin": 950,
+    "n_anomalies": 62
+  },
+  {
+    "timestamp_bin": 1000,
+    "n_anomalies": 2
+  }
+]

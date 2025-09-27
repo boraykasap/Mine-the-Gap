@@ -1,0 +1,75 @@
+FULL PIPELINE WORKFLOW (ENGLISH VERSION)
+========================================
+
+Step 1: Model Training
+----------------------
+Command:
+    python -m src.training.train_tgn
+
+Output:
+    Saves artifacts/tgn_checkpoint.pt
+
+
+Step 2: Calibration (Temperature Scaling on clean dataset)
+----------------------------------------------------------
+Command:
+    python -m src.postprocess.calibrate
+
+Output:
+    Saves artifacts/calibration.json
+
+
+Step 3: Anomaly Scoring (Noisy and Clean datasets)
+--------------------------------------------------
+Noisy:
+    python -m src.inference.score_events --input input/edge_events.csv --output outputs/anomalies.jsonl
+
+Clean:
+    python -m src.inference.score_events --input input/edge_events_clean.csv --output outputs/anomalies_clean.jsonl
+
+
+Step 4: Comparative Analysis (Clean vs Noisy)
+---------------------------------------------
+Command:
+    python -m src.analysis.compare_clean_noisy
+
+Output:
+    Saves outputs/compare_clean_noisy.csv
+
+
+Step 5: Anomaly Summary by Thresholds
+-------------------------------------
+Command:
+    python -m src.analysis.summary_anomalies
+
+Output:
+    Saves outputs/summary.csv (percentages above various thresholds)
+
+
+Step 6: Graph Analysis
+----------------------
+Default:
+    python -m src.postprocess.analyze_graph --input outputs/anomalies.jsonl --outdir outputs/derived --threshold 0.9
+
+Low Resolution (default time window 50):
+    python -m src.postprocess.analyze_graph --time_window 50 --outdir outputs/derived_50
+
+High Resolution (time window 10):
+    python -m src.postprocess.analyze_graph --time_window 10 --outdir outputs/derived_10
+
+
+API Example
+-----------
+Endpoint:
+    https://api.swisscom.com/layer/swiss-ai-weeks/apertus-70b/v1/chat/completions
+
+Example Request:
+{
+  "model": "swiss-ai/Apertus-70B",
+  "messages": [
+    {
+      "role": "user",
+      "content": "can you tell me a joke?"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "internal_lp": {
+    "lp_roc_auc": 0.8720390726955842,
+    "lp_average_precision": 0.5402066244720279,
+    "lp_precision_at_10": 0.7,
+    "lp_recall_at_10": 0.006134969325153374,
+    "lp_precision_at_50": 0.72,
+    "lp_recall_at_50": 0.03155127081507449,
+    "lp_precision_at_100": 0.72,
+    "lp_recall_at_100": 0.06310254163014899
+  },
+  "diff_diag": {
+    "strict_common": 0,
+    "strict_only_clean": 11404,
+    "strict_only_noisy": 9947,
+    "relaxed_common": 0,
+    "relaxed_only_clean": 8656,
+    "relaxed_only_noisy": 7968,
+    "n_clean": 11404,
+    "n_noisy": 9947
+  },
+  "windowed_diff": {
+    "win_roc_auc": null,
+    "win_average_precision": null,
+    "win_precision_at_10": 1.0,
+    "win_recall_at_10": 0.0010053282396702524,
+    "win_precision_at_50": 1.0,
+    "win_recall_at_50": 0.005026641198351262,
+    "win_precision_at_100": 1.0,
+    "win_recall_at_100": 0.010053282396702523
+  }
+}
