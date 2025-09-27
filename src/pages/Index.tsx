@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { CSVUpload } from '@/components/CSVUpload';
+import { CSVUpload2 } from '@/components/CSVUpload2';
 import { DataTable } from '@/components/DataTable';
 import { DataSlider } from '@/components/DataSlider';
 import { toast } from '@/hooks/use-toast';
@@ -50,6 +51,10 @@ const Index = () => {
     });
   };
 
+    const handleFileUpload2 = (data: string[][]) => {
+    alert("Hi");
+  };
+
   const handleFilterChange = (value: [number, number]) => {
     setFilterRange(value);
   };
@@ -74,6 +79,7 @@ const Index = () => {
               Upload and explore your CSV data with interactive filtering
             </p>
           </div>
+          <CSVUpload2 onClick={handleFileUpload2} />
           <CSVUpload onFileUpload={handleFileUpload} />
         </div>
 
