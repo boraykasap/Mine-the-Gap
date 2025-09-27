@@ -5,7 +5,7 @@ This project presents a robust solution for the "Mine the Gap" challenge, aimed 
 The core approach is to train a **Temporal Graph Network (TGN)** in an unsupervised fashion. The model learns the patterns of "normal" graph evolution from a clean dataset and then uses this knowledge to identify and score unexpected events in a noisy dataset.
 
 ## Available data
-Two datasets are available, a `clean` one and a `noisy` one. The ``clean` one represents a dynamic knowledge graph, which is a data structure used to model relations between network entities across time. It represents a synthetic normal working network, simulated from Swisscom's probabilistic models. The `noisy` one is also synthetic but includes anomalies the graph's evolution.
+Two datasets are available, a `clean` one and a `noisy` one. The `clean` one represents a dynamic knowledge graph, which is a data structure used to model relations between network entities across time. It represents a synthetic normal working network, simulated from Swisscom's probabilistic models. The `noisy` one is also synthetic but includes anomalies the graph's evolution.
 
 ![Graphs example](outputs/report/00_graphs.png)
 Above is an example of event happening to the graph at a certain time. An extra port (X) connects to the concentrator vertex. If the concentrator vertex is usually only connected with Ports A, B and C, this could be an anomaly worthy of attention.
