@@ -32,30 +32,10 @@
             <p class="text-lg text-gray-400">An AI-powered tool for Root Cause Analysis of graph anomalies.</p>
         </header>
 
-        <!-- Section 0: Data Loader -->
-        <section id="data-loader" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
-            <h2 class="text-2xl font-bold mb-4 text-white">Setup Workbench</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <p class="text-gray-400 mb-4">1. Load the required data files.</p>
-                    <label for="file-input" class="cursor-pointer w-full text-center block bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-colors">
-                        Select `anomalies.jsonl` & `nodes.json`...
-                    </label>
-                    <input type="file" id="file-input" multiple class="hidden">
-                    <div id="file-status" class="mt-2 space-y-2"></div>
-                </div>
-                <div>
-                    <p class="text-gray-400 mb-4">2. Enter your Swiss AI API Key.</p>
-                    <input type="password" id="api-key-input" placeholder="Enter your API Key here" class="w-full bg-gray-700 text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <div id="status-api-key" class="mt-2 flex items-center justify-between p-2 bg-gray-600 rounded">
-                        <span class="font-mono text-sm">API Key Status</span>
-                        <span class="text-yellow-400 font-bold">Waiting...</span>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-6 text-center">
-                <button id="launch-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>Launch Workbench</button>
-            </div>
+        <!-- Loading State -->
+        <section id="loading-state" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6 text-center">
+            <h2 class="text-2xl font-bold mb-4 text-white animate-pulse">Initializing Workbench...</h2>
+            <p class="text-gray-400">Loading and processing anomaly data.</p>
         </section>
 
         <main id="dashboard-content" class="hidden">
@@ -169,17 +149,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- STATE MANAGEMENT ---
     let state = {
-        allEvents: [], nodesData: [], percentiles: {}, timeRange: { min: 0, max: 1000 }, apiKey: null,
+        allEvents: [], nodesData: [], percentiles: {}, timeRange: { min: 0, max: 1000 },
         filters: { severity: 0, timeBin: null, nodeId: null, resolution: 'macro' }
     };
 
     // --- DOM ELEMENTS ---
-    const fileInput = document.getElementById('file-input');
-    const apiKeyInput = document.getElementById('api-key-input');
-    const launchBtn = document.getElementById('launch-btn');
     const dashboardContent = document.getElementById('dashboard-content');
-    const dataLoader = document.getElementById('data-loader');
-    const fileStatusContainer = document.getElementById('file-status');
+    const loadingState = document.getElementById('loading-state');
     const severityFilterContainer = document.getElementById('severity-filter');
     const resolutionFilterContainer = document.getElementById('resolution-filter');
     const inspectorPrompt = document.getElementById('inspector-prompt');
@@ -195,89 +171,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiCopilotResponse = document.getElementById('ai-copilot-response');
 
     // --- INITIALIZATION ---
-    const requiredFiles = {
-        'anomalies.jsonl': { loaded: false, data: null, name: 'outputs/anomalies.jsonl' },
-        'nodes.json': { loaded: false, data: null, name: 'outputs/derived/nodes.json' }
-    };
+    async function initialize() {
+        try {
+            const [anomaliesRes, nodesRes] = await Promise.all([
+                fetch('./data/anomalies.jsonl'),
+                fetch('./data/nodes.json')
+            ]);
 
-    function setupFileLoader() {
-        fileStatusContainer.innerHTML = Object.values(requiredFiles).map(f => `<div id="status-${f.name.replace(/[^a-zA-Z0-9]/g, '-')}" class="flex items-center justify-between p-2 bg-gray-600 rounded"><span class="font-mono text-sm">${f.name}</span><span class="text-yellow-400 font-bold">Waiting...</span></div>`).join('');
+            if (!anomaliesRes.ok) throw new Error(`Failed to load anomalies.jsonl`);
+            const anomaliesText = await anomaliesRes.text();
+            state.allEvents = anomaliesText.trim().split('\n').map(line => JSON.parse(line));
+
+            if (!nodesRes.ok) throw new Error(`Failed to load nodes.json`);
+            state.nodesData = await nodesRes.json();
+
+            // Post-load processing
+            const timestamps = state.allEvents.map(e => e.timestamp);
+            state.timeRange.min = Math.min(...timestamps);
+            state.timeRange.max = Math.max(...timestamps);
+
+            const scores = state.allEvents.map(e => e.anomaly_score).sort((a, b) => a - b);
+            state.percentiles = {
+                95: scores[Math.floor(scores.length * 0.95)],
+                99: scores[Math.floor(scores.length * 0.99)],
+            };
+
+            loadingState.classList.add('hidden');
+            dashboardContent.classList.remove('hidden');
+            render();
+
+        } catch (error) {
+            loadingState.innerHTML = `<h2 class="text-2xl font-bold text-red-500">Failed to Load Data</h2><p class="text-gray-400 mt-2">Please ensure the Python server is running in the correct directory and the 'data' subfolder with anomalies.jsonl and nodes.json exists.</p><p class="text-sm text-gray-500 mt-4">Error: ${error.message}</p>`;
+        }
     }
-    setupFileLoader();
+    initialize();
 
-    fileInput.addEventListener('change', handleFileSelect);
-    apiKeyInput.addEventListener('input', checkLaunchReady);
-    launchBtn.addEventListener('click', launchDashboard);
     severityFilterContainer.addEventListener('click', handleSeverityFilter);
     resolutionFilterContainer.addEventListener('click', handleResolutionFilter);
     llmQueryBtn.addEventListener('click', handleLlmQuery);
     askAiBtn.addEventListener('click', handleAskAi);
-
-    // --- DATA LOADING & PRE-PROCESSING ---
-    function handleFileSelect(event) {
-        for (const file of event.target.files) {
-            if (file.name in requiredFiles) readFile(file);
-        }
-    }
-
-    function readFile(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const content = e.target.result;
-                const fileInfo = requiredFiles[file.name];
-                fileInfo.data = file.name.endsWith('.jsonl') ? content.trim().split('\n').map(line => JSON.parse(line)) : JSON.parse(content);
-                fileInfo.loaded = true;
-                updateFileStatus(file.name, true);
-                checkLaunchReady();
-            } catch (err) { updateFileStatus(file.name, false, 'Parsing Error'); }
-        };
-        reader.onerror = () => updateFileStatus(file.name, false, 'Read Error');
-        reader.readAsText(file);
-    }
-
-    function updateFileStatus(filename, success, message = 'Loaded') {
-        const statusId = `status-${requiredFiles[filename].name.replace(/[^a-zA-Z0-9]/g, '-')}`;
-        const statusEl = document.getElementById(statusId).querySelector('span:last-child');
-        statusEl.textContent = success ? '✔ Loaded' : `✖ ${message}`;
-        statusEl.className = success ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
-    }
-
-    function checkLaunchReady() {
-        const allFilesLoaded = Object.values(requiredFiles).every(f => f.loaded);
-        const apiKeyEntered = apiKeyInput.value.trim() !== '';
-
-        const apiKeyStatusEl = document.getElementById('status-api-key').querySelector('span:last-child');
-        if (apiKeyEntered) {
-            apiKeyStatusEl.textContent = '✔ Entered';
-            apiKeyStatusEl.className = 'text-green-400 font-bold';
-        } else {
-            apiKeyStatusEl.textContent = 'Waiting...';
-            apiKeyStatusEl.className = 'text-yellow-400 font-bold';
-        }
-
-        launchBtn.disabled = !(allFilesLoaded && apiKeyEntered);
-    }
-
-    function launchDashboard() {
-        state.allEvents = requiredFiles['anomalies.jsonl'].data;
-        state.nodesData = requiredFiles['nodes.json'].data;
-        state.apiKey = apiKeyInput.value.trim();
-
-        const timestamps = state.allEvents.map(e => e.timestamp);
-        state.timeRange.min = Math.min(...timestamps);
-        state.timeRange.max = Math.max(...timestamps);
-
-        const scores = state.allEvents.map(e => e.anomaly_score).sort((a, b) => a - b);
-        state.percentiles = {
-            95: scores[Math.floor(scores.length * 0.95)],
-            99: scores[Math.floor(scores.length * 0.99)],
-        };
-
-        dataLoader.classList.add('hidden');
-        dashboardContent.classList.remove('hidden');
-        render();
-    }
 
     // --- CENTRAL RENDER FUNCTION ---
     function render() {
@@ -399,16 +331,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    apiKey: state.apiKey,
-                    payload: {
-                        model: "swiss-ai/Apertus-70B",
-                        messages: messages
-                    }
+                    messages: messages
                 })
             });
 
             if (!response.ok) {
-                throw new Error(`API request failed with status ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`API request failed with status ${response.status}: ${errorText}`);
             }
             const data = await response.json();
             return data.choices[0].message.content;
@@ -460,15 +389,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleAskAi() {
         const diagnosis = document.getElementById('automated-diagnosis').textContent;
-        const prompt = `You are a network operations expert AI. Given the following anomaly diagnosis for node '${state.filters.nodeId}': "${diagnosis}". What is the likely root cause and what are the next 3 steps for investigation? Be concise and actionable.`;
+
+        const systemPrompt = "You are an expert AIOps analyst named 'Co-Pilot'. Your task is to provide a concise root cause analysis based EXCLUSIVELY on the automated diagnosis summary provided by another system. Your rules are absolute: 1. You MUST assume the provided summary is complete and accurate. It is your only source of truth. 2. You MUST NOT, under any circumstances, state that you are an AI, that you lack information, or that you cannot provide a definitive answer. 3. You MUST provide a direct, confident analysis based on the clues in the summary. 4. Your response MUST be structured in two parts: a 'Root Cause Hypothesis' and 'Actionable Next Steps'. Use the clues from the diagnosis (like the node's primary role as source/destination and the most frequent relation type) to make an educated, expert guess. Be professional, direct, and helpful.";
+        const userPrompt = `Automated Diagnosis Summary:\n"${diagnosis}"\n\nProvide your analysis based on this summary.`;
 
         aiCopilotResponse.classList.remove('hidden');
         aiCopilotResponse.innerHTML = `<p class="text-gray-400 animate-pulse">AI Co-Pilot is thinking...</p>`;
 
-        const responseContent = await callLocalProxy([{ role: 'user', content: prompt }]);
+        const responseContent = await callLocalProxy([
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+        ]);
 
         if (responseContent) {
-            aiCopilotResponse.innerHTML = `<p class="font-semibold text-purple-400">AI Co-Pilot Analysis:</p><div class="text-sm text-gray-300 mt-2 space-y-2">${responseContent.replace(/\n/g, '<br>')}</div>`;
+            const formattedResponse = responseContent
+                .replace(/Root Cause Hypothesis:/g, '<b class="text-purple-400">Root Cause Hypothesis:</b>')
+                .replace(/Actionable Next Steps:/g, '<b class="text-purple-400">Actionable Next Steps:</b>')
+                .replace(/\n/g, '<br>');
+            aiCopilotResponse.innerHTML = `<div class="text-sm text-gray-300 mt-2 space-y-2">${formattedResponse}</div>`;
         } else {
             aiCopilotResponse.innerHTML = `<p class="text-red-400">Error communicating with AI. Is the Python proxy server running?</p>`;
         }
