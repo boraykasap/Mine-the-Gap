@@ -7,7 +7,7 @@ interface CSVUploadProps {
   onFileUpload: (data: string[][]) => void;
 }
 
-export const CSVUpload2 = ({ onFileUpload }: CSVUploadProps) => {
+export const HTTPPostButton = ({ onFileUpload }: CSVUploadProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,8 +25,9 @@ export const CSVUpload2 = ({ onFileUpload }: CSVUploadProps) => {
     }
   };
 
-  const handleUploadClick2 = () => {
+  const handleHTTPPostRequest = () => {
     
+    //-------> need up update the below to be HTTP POST!
     fetch('http://localhost:8000/')
     .then(response => {
       if (!response.ok) {
@@ -43,19 +44,16 @@ export const CSVUpload2 = ({ onFileUpload }: CSVUploadProps) => {
       console.error('Error:', error);
     });
 
-    
-    //window.location.href = "http://localhost:8000/";
-
   };
 
   return (
     <div className="flex items-center gap-4">
       <Button 
-        onClick={handleUploadClick2}
+        onClick={handleHTTPPostRequest}
         variant="default"
         className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
       >
-        Upload CSV2
+        HTTPPostButton
       </Button>
     </div>
   );
