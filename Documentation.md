@@ -78,3 +78,8 @@ The Temporal Graph Network model proved to be a highly effective tool for this c
     *   The primary challenge was the nature of the dataset itself. The discovery that the `clean` and `noisy` datasets are **completely disjoint** made a standard quantitative evaluation of anomaly detection performance impossible.
 
 Despite this limitation, the strong qualitative evidence and the robust internal validation metrics strongly suggest that the model is effective at identifying temporal and structural deviations in a dynamic graph.
+
+## Possible Areas of Improvement
+   * A bigger TGN could be used @ Swisscom, because they have a huge data in this kind and inflow.
+   * Ensemble Methods 
+   * Mathematical exploration of the graph, without Deep Learning. Tackling the problem from a structural perspective: which type of nodes are more dense, what kind of new edges abnormal, breaking the structure?
