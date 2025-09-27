@@ -5,7 +5,7 @@ This project presents a robust solution for the "Mine the Gap" challenge, aimed 
 The core approach is to train a **Temporal Graph Network (TGN)** in an unsupervised fashion. The model learns the patterns of "normal" graph evolution from a clean dataset and then uses this knowledge to identify and score unexpected events in a noisy dataset.
 
 ## Available data
-Two datasets are available, a `clean` one and a `noisy` one. The ``clean` one represents a dynamic knowledge graph, which is a data structure used to model relations between network entities across time. It represents a synthetic normal working network, simulated from Swisscom's probabilistic models. The `noisy` one is also synthetic but includes anomalies the graph's evolution.
+Two datasets are available, a `clean` one and a `noisy` one. The `clean` one represents a dynamic knowledge graph, which is a data structure used to model relations between network entities across time. It represents a synthetic normal working network, simulated from Swisscom's probabilistic models. The `noisy` one is also synthetic but includes anomalies the graph's evolution.
 
 ![Graphs example](outputs/report/00_graphs.png)
 Above is an example of event happening to the graph at a certain time. An extra port (X) connects to the concentrator vertex. If the concentrator vertex is usually only connected with Ports A, B and C, this could be an anomaly worthy of attention.
@@ -78,3 +78,8 @@ The Temporal Graph Network model proved to be a highly effective tool for this c
     *   The primary challenge was the nature of the dataset itself. The discovery that the `clean` and `noisy` datasets are **completely disjoint** made a standard quantitative evaluation of anomaly detection performance impossible.
 
 Despite this limitation, the strong qualitative evidence and the robust internal validation metrics strongly suggest that the model is effective at identifying temporal and structural deviations in a dynamic graph.
+
+## Possible Areas of Improvement
+   * A bigger TGN could be used @ Swisscom, because they have a huge data in this kind and inflow.
+   * Ensemble Methods 
+   * Mathematical exploration of the graph, without Deep Learning. Tackling the problem from a structural perspective: which type of nodes are more dense, what kind of new edges abnormal, breaking the structure?
