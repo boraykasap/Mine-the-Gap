@@ -83,3 +83,7 @@ Despite this limitation, the strong qualitative evidence and the robust internal
    * A bigger TGN could be used @ Swisscom, because they have a huge data in this kind and inflow.
    * Ensemble Methods 
    * Mathematical exploration of the graph, without Deep Learning. Tackling the problem from a structural perspective: which type of nodes are more dense, what kind of new edges abnormal, breaking the structure?
+
+
+
+
