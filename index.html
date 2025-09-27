@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML + JavaScript Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        #colorBox {
+            width: 100px;
+            height: 100px;
+            background-color: lightblue;
+            margin-top: 20px;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 id="title">Welcome to My Page</h1>
+    <p id="paragraph">This paragraph will change when you click the button.</p>
+
+    <button onclick="changeText()">Change Text</button>
+    <button onclick="toggleColor()">Toggle Color</button>
+    <button onclick="showAlert()">Show Alert</button>
+
+    <div id="colorBox"></div>
+
+    <script>
+        // Function to change the text of the paragraph
+        function changeText() {
+            document.getElementById('paragraph').innerText = "The text has been changed!";
+            document.getElementById('title').innerText = "Text Changed!";
+        }
+
+        // Function to toggle the color of the box
+        function toggleColor() {
+            const box = document.getElementById('colorBox');
+            if (box.style.backgroundColor === 'lightblue') {
+                box.style.backgroundColor = 'lightgreen';
+            } else {
+                box.style.backgroundColor = 'lightblue';
+            }
+        }
+
+        // Function to show an alert
+        function showAlert() {
+            alert('Hello! This is an alert from JavaScript.');
+        }
+    </script>
+
+</body>
+</html>
