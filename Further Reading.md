@@ -1,9 +1,3 @@
-### `PROJECT_OVERVIEW.md`
-
-You can name this file `README.md` or something more specific for the presentation, like `PROJECT_OVERVIEW.md`.
-
---- START OF FILE ---
-
 # Anomaly Investigation Workbench: An AI-Powered Tool for Graph Root Cause Analysis
 
 ## 1. Project Mission & Scope
