@@ -1,9 +1,0 @@
-Term,Explanation
-agreement,"Contract or subscription relationship between the customer and the provider (e.g., service plan or SLA)."
-bng,"(Broadband Network Gateway) Edge router in the provider’s access network that authenticates subscribers, enforces policies, and connects them to the core network."
-concentrator,"Network node that aggregates multiple customer connections before handing them off to the BNG or core (e.g., DSLAM, CMTS)."
-cpe,"(Customer Premises Equipment) Equipment located at the customer’s site, such as modem, router, or ONT."
-customer,The subscriber or organization using the service; linked to agreements and CPEs.
-poi,"(Point of Interconnect / Point of Interface) Physical or logical interface where two networks connect (e.g., provider _ peering partner)."
-port,"Physical or logical interface on a network device (switch, router, concentrator) that carries traffic."
-sa,(Service Access / Service Area / Service Agreement — context dependent) Usually refers to the logical construct linking a customer/agreement to the actual service instance; sometimes used for service area or service profile.
