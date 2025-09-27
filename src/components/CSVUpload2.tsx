@@ -27,7 +27,22 @@ export const CSVUpload2 = ({ onFileUpload }: CSVUploadProps) => {
 
   const handleUploadClick2 = () => {
     
-    document.getElementById("textfield").textContent="hi";
+    fetch('http://localhost:8000/')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return console.log(response.json()); // or response.text() for plain text
+    })
+    .then(data => {
+      console.log(data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+
+    //document.getElementById("textfield").textContent="hi";
+    //window.location.href = "http://localhost:8000/";
 
   };
 

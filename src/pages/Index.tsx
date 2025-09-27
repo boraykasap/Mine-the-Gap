@@ -52,7 +52,7 @@ const Index = () => {
   };
 
     const handleFileUpload2 = (data: string[][]) => {
-    alert("Hi");
+    //alert("Hi");
   };
 
   const handleFilterChange = (value: [number, number]) => {
