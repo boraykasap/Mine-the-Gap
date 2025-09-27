@@ -78,6 +78,9 @@ const Index = () => {
             <p className="text-muted-foreground text-lg">
               Upload and explore your CSV data with interactive filtering
             </p>
+            <p id="textfield" className="text-muted-foreground text-lg">
+              Upload and explore your CSV data with interactive filtering
+            </p>
           </div>
           <CSVUpload2 onClick={handleFileUpload2} />
           <CSVUpload onFileUpload={handleFileUpload} />

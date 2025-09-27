@@ -26,7 +26,9 @@ export const CSVUpload2 = ({ onFileUpload }: CSVUploadProps) => {
   };
 
   const handleUploadClick2 = () => {
-    alert("hi");
+    
+    document.getElementById("textfield").textContent="hi";
+
   };
 
   return (
