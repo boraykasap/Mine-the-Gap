@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anomaly Investigation Workbench</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background-color: #030712; }
+        .chart-container { position: relative; height: 150px; width: 100%; }
+        .signature-chart-container { position: relative; height: 180px; width: 100%; }
+        #graph-inspector-container { height: 100%; min-height: 400px; border: 1px solid #374151; background-color: #111827; border-radius: 0.5rem; }
+        .table-container { max-height: 300px; overflow-y: auto; }
+        .table-container::-webkit-scrollbar { width: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #1f2937; }
+        .table-container::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        .filter-btn { transition: all 0.2s ease-in-out; }
+        .filter-btn.active { background-color: #2563eb; color: white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        .offender-item.active { background-color: #1e40af; }
+        .vis-network:focus { outline: none; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <div class="container mx-auto p-4 md:p-6">
+        <header class="mb-6">
+            <h1 class="text-4xl font-bold text-white">Anomaly Investigation Workbench</h1>
+            <p class="text-lg text-gray-400">An AI-powered tool for Root Cause Analysis of graph anomalies.</p>
+        </header>
+
+        <!-- Section 0: Data Loader -->
+        <section id="data-loader" class="bg-gray-800 p-6 rounded-lg shadow-lg mb-6">
+            <h2 class="text-2xl font-bold mb-4 text-white">Setup Workbench</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <p class="text-gray-400 mb-4">1. Load the required data files.</p>
+                    <label for="file-input" class="cursor-pointer w-full text-center block bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-colors">
+                        Select `anomalies.jsonl` & `nodes.json`...
+                    </label>
+                    <input type="file" id="file-input" multiple class="hidden">
+                    <div id="file-status" class="mt-2 space-y-2"></div>
+                </div>
+                <div>
+                    <p class="text-gray-400 mb-4">2. Enter your Swiss AI API Key.</p>
+                    <input type="password" id="api-key-input" placeholder="Enter your API Key here" class="w-full bg-gray-700 text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div id="status-api-key" class="mt-2 flex items-center justify-between p-2 bg-gray-600 rounded">
+                        <span class="font-mono text-sm">API Key Status</span>
+                        <span class="text-yellow-400 font-bold">Waiting...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 text-center">
+                <button id="launch-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>Launch Workbench</button>
+            </div>
+        </section>
+
+        <main id="dashboard-content" class="hidden">
+            <!-- LLM Query -->
+            <section class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-white">Natural Language Query</h2>
+                <div class="flex space-x-2">
+                    <input id="llm-query-input" type="text" placeholder="e.g., 'show me urgent problems' or 'focus on customer-0'" class="w-full bg-gray-700 text-white rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="llm-query-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">Ask AI</button>
+                </div>
+                <div id="llm-thought-process" class="mt-4 p-3 bg-gray-900 rounded hidden"></div>
+            </section>
+
+            <!-- Phase 1: Triage -->
+            <section class="bg-gray-800 p-4 rounded-lg shadow-lg mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-white">Phase 1: Triage - Global System View</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3">Filter by Severity</h3>
+                        <div id="severity-filter" class="flex space-x-2">
+                            <button data-p="0" class="filter-btn flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded active">All Events</button>
+                            <button data-p="95" class="filter-btn flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Critical (P95+)</button>
+                            <button data-p="99" class="filter-btn flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Urgent (P99+)</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3">Filter by Time</h3>
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-gray-400 text-sm">Click a bar to focus on a time window.</p>
+                            <div id="resolution-filter" class="flex space-x-1 bg-gray-700 rounded-lg p-1">
+                                <button data-res="macro" class="filter-btn px-3 py-1 text-sm rounded-md active">Macro</button>
+                                <button data-res="micro" class="filter-btn px-3 py-1 text-sm rounded-md">Micro</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column: Correlation -->
+                <div class="lg:col-span-1 space-y-6">
+                    <section class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-bold mb-3 text-white">Phase 2: Correlate</h2>
+                        <p id="correlation-summary" class="text-sm text-gray-400 mb-4"></p>
+                        <div class="space-y-4">
+                            <div><h4 class="text-sm font-bold mb-2">Top Offenders (Nodes)</h4><div id="top-nodes-list" class="space-y-2 max-h-[250px] overflow-y-auto pr-2"></div></div>
+                            <div><h4 class="text-sm font-bold mb-2">Top Problematic Relations</h4><div class="signature-chart-container"><canvas id="labelChart"></canvas></div></div>
+                            <div><h4 class="text-sm font-bold mb-2">Top Failure Types</h4><div class="signature-chart-container"><canvas id="typeChart"></canvas></div></div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Right Column: Root Cause Analysis -->
+                <div class="lg:col-span-2 space-y-6">
+                    <section id="investigation-panel">
+                        <div id="inspector-prompt" class="bg-gray-800 p-4 rounded-lg shadow-lg text-gray-400 text-center py-16">
+                            <p class="text-lg">Select a node from the "Top Offenders" list to begin Root Cause Analysis.</p>
+                        </div>
+                        <div id="storyboard-container" class="hidden space-y-6">
+                            <div class="flex justify-between items-center">
+                                <h2 id="storyboard-title" class="text-2xl font-bold text-white"></h2>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                                <h3 class="text-lg font-semibold mb-3 text-blue-400">Automated Diagnosis</h3>
+                                <div id="automated-diagnosis" class="bg-gray-900 border-l-4 border-blue-500 p-4 rounded-r-lg mb-4"></div>
+                                <button id="ask-ai-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">Ask AI Co-Pilot for Root Cause Analysis</button>
+                                <div id="ai-copilot-response" class="mt-4 p-3 bg-gray-900 rounded hidden"></div>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
+                                <h3 class="text-lg font-semibold mb-3 text-blue-400">Evidence: Subgraph & Event Replay</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div id="graph-inspector-container"></div>
+                                    <div>
+                                        <div id="replay-controls" class="flex items-center space-x-2 mb-2">
+                                            <button id="play-btn" class="bg-green-600 hover:bg-green-700 p-2 rounded-full text-white disabled:opacity-50" title="Play Event Sequence">
+                                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" /></svg>
+                                            </button>
+                                            <span id="replay-status" class="text-sm text-gray-400">Ready</span>
+                                        </div>
+                                        <div class="table-container">
+                                            <table class="w-full text-sm text-left text-gray-300">
+                                                <thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0">
+                                                    <tr>
+                                                        <th class="px-4 py-3">Timestamp</th>
+                                                        <th class="px-4 py-3">Event</th>
+                                                        <th class="px-4 py-3 text-center">Score</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="events-table-body"></tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+// --- SCRIPT START ---
+document.addEventListener('DOMContentLoaded', () => {
+    // --- CONSTANTS ---
+    const TIME_WINDOWS = { macro: 50, micro: 10 };
+    const API_ENDPOINT = '/api/proxy'; // Calls our local Python proxy
+
+    // --- STATE MANAGEMENT ---
+    let state = {
+        allEvents: [], nodesData: [], percentiles: {}, timeRange: { min: 0, max: 1000 }, apiKey: null,
+        filters: { severity: 0, timeBin: null, nodeId: null, resolution: 'macro' }
+    };
+
+    // --- DOM ELEMENTS ---
+    const fileInput = document.getElementById('file-input');
+    const apiKeyInput = document.getElementById('api-key-input');
+    const launchBtn = document.getElementById('launch-btn');
+    const dashboardContent = document.getElementById('dashboard-content');
+    const dataLoader = document.getElementById('data-loader');
+    const fileStatusContainer = document.getElementById('file-status');
+    const severityFilterContainer = document.getElementById('severity-filter');
+    const resolutionFilterContainer = document.getElementById('resolution-filter');
+    const inspectorPrompt = document.getElementById('inspector-prompt');
+    const storyboardContainer = document.getElementById('storyboard-container');
+    const storyboardTitle = document.getElementById('storyboard-title');
+    const correlationSummary = document.getElementById('correlation-summary');
+    const playBtn = document.getElementById('play-btn');
+    const replayStatus = document.getElementById('replay-status');
+    const llmQueryInput = document.getElementById('llm-query-input');
+    const llmQueryBtn = document.getElementById('llm-query-btn');
+    const llmThoughtProcess = document.getElementById('llm-thought-process');
+    const askAiBtn = document.getElementById('ask-ai-btn');
+    const aiCopilotResponse = document.getElementById('ai-copilot-response');
+
+    // --- INITIALIZATION ---
+    const requiredFiles = {
+        'anomalies.jsonl': { loaded: false, data: null, name: 'outputs/anomalies.jsonl' },
+        'nodes.json': { loaded: false, data: null, name: 'outputs/derived/nodes.json' }
+    };
+
+    function setupFileLoader() {
+        fileStatusContainer.innerHTML = Object.values(requiredFiles).map(f => `<div id="status-${f.name.replace(/[^a-zA-Z0-9]/g, '-')}" class="flex items-center justify-between p-2 bg-gray-600 rounded"><span class="font-mono text-sm">${f.name}</span><span class="text-yellow-400 font-bold">Waiting...</span></div>`).join('');
+    }
+    setupFileLoader();
+
+    fileInput.addEventListener('change', handleFileSelect);
+    apiKeyInput.addEventListener('input', checkLaunchReady);
+    launchBtn.addEventListener('click', launchDashboard);
+    severityFilterContainer.addEventListener('click', handleSeverityFilter);
+    resolutionFilterContainer.addEventListener('click', handleResolutionFilter);
+    llmQueryBtn.addEventListener('click', handleLlmQuery);
+    askAiBtn.addEventListener('click', handleAskAi);
+
+    // --- DATA LOADING & PRE-PROCESSING ---
+    function handleFileSelect(event) {
+        for (const file of event.target.files) {
+            if (file.name in requiredFiles) readFile(file);
+        }
+    }
+
+    function readFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const content = e.target.result;
+                const fileInfo = requiredFiles[file.name];
+                fileInfo.data = file.name.endsWith('.jsonl') ? content.trim().split('\n').map(line => JSON.parse(line)) : JSON.parse(content);
+                fileInfo.loaded = true;
+                updateFileStatus(file.name, true);
+                checkLaunchReady();
+            } catch (err) { updateFileStatus(file.name, false, 'Parsing Error'); }
+        };
+        reader.onerror = () => updateFileStatus(file.name, false, 'Read Error');
+        reader.readAsText(file);
+    }
+
+    function updateFileStatus(filename, success, message = 'Loaded') {
+        const statusId = `status-${requiredFiles[filename].name.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        const statusEl = document.getElementById(statusId).querySelector('span:last-child');
+        statusEl.textContent = success ? '✔ Loaded' : `✖ ${message}`;
+        statusEl.className = success ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+    }
+
+    function checkLaunchReady() {
+        const allFilesLoaded = Object.values(requiredFiles).every(f => f.loaded);
+        const apiKeyEntered = apiKeyInput.value.trim() !== '';
+
+        const apiKeyStatusEl = document.getElementById('status-api-key').querySelector('span:last-child');
+        if (apiKeyEntered) {
+            apiKeyStatusEl.textContent = '✔ Entered';
+            apiKeyStatusEl.className = 'text-green-400 font-bold';
+        } else {
+            apiKeyStatusEl.textContent = 'Waiting...';
+            apiKeyStatusEl.className = 'text-yellow-400 font-bold';
+        }
+
+        launchBtn.disabled = !(allFilesLoaded && apiKeyEntered);
+    }
+
+    function launchDashboard() {
+        state.allEvents = requiredFiles['anomalies.jsonl'].data;
+        state.nodesData = requiredFiles['nodes.json'].data;
+        state.apiKey = apiKeyInput.value.trim();
+
+        const timestamps = state.allEvents.map(e => e.timestamp);
+        state.timeRange.min = Math.min(...timestamps);
+        state.timeRange.max = Math.max(...timestamps);
+
+        const scores = state.allEvents.map(e => e.anomaly_score).sort((a, b) => a - b);
+        state.percentiles = {
+            95: scores[Math.floor(scores.length * 0.95)],
+            99: scores[Math.floor(scores.length * 0.99)],
+        };
+
+        dataLoader.classList.add('hidden');
+        dashboardContent.classList.remove('hidden');
+        render();
+    }
+
+    // --- CENTRAL RENDER FUNCTION ---
+    function render() {
+        const filteredEvents = getFilteredEvents();
+
+        renderTimelineChart(calculateDynamicTimeseries(filteredEvents), state.filters.timeBin);
+        renderCorrelationPanel(filteredEvents);
+
+        if (state.filters.nodeId) {
+            const nodeEvents = filteredEvents
+                .filter(e => e.src === state.filters.nodeId || e.dst === state.filters.nodeId)
+                .sort((a, b) => a.timestamp - b.timestamp);
+
+            inspectorPrompt.classList.add('hidden');
+            storyboardContainer.classList.remove('hidden');
+            storyboardTitle.textContent = `Phase 3: Root Cause Analysis for ${state.filters.nodeId}`;
+
+            renderAutomatedDiagnosis(nodeEvents);
+            renderContextualSubgraph(nodeEvents);
+            renderEventLog(nodeEvents);
+            setupReplayControls(nodeEvents);
+            aiCopilotResponse.classList.add('hidden');
+        } else {
+            inspectorPrompt.classList.remove('hidden');
+            storyboardContainer.classList.add('hidden');
+        }
+    }
+
+    // --- DYNAMIC CALCULATION & FILTERING ---
+    function calculateDynamicTimeseries(events) {
+        const timeWindow = TIME_WINDOWS[state.filters.resolution];
+        const minBin = Math.floor(state.timeRange.min / timeWindow) * timeWindow;
+        const maxBin = Math.floor(state.timeRange.max / timeWindow) * timeWindow;
+
+        const counts = {};
+        for (let bin = minBin; bin <= maxBin; bin += timeWindow) {
+            counts[bin] = 0;
+        }
+
+        events.forEach(event => {
+            const bin = Math.floor(event.timestamp / timeWindow) * timeWindow;
+            if (bin in counts) counts[bin]++;
+        });
+        return Object.entries(counts).map(([bin, count]) => ({
+            timestamp_bin: parseInt(bin),
+            n_anomalies: count
+        }));
+    }
+
+    function getFilteredEvents() {
+        let events = state.allEvents;
+        if (state.filters.severity > 0) {
+            const threshold = state.percentiles[state.filters.severity];
+            events = events.filter(e => e.anomaly_score >= threshold);
+        }
+        if (state.filters.timeBin !== null) {
+            const timeWindow = TIME_WINDOWS[state.filters.resolution];
+            const t_start = state.filters.timeBin;
+            const t_end = t_start + timeWindow;
+            events = events.filter(e => e.timestamp >= t_start && e.timestamp < t_end);
+        }
+        return events;
+    }
+
+    function getFilteredNodes(filteredEvents) {
+        const nodeCounts = {};
+        filteredEvents.forEach(event => {
+            nodeCounts[event.src] = (nodeCounts[event.src] || 0) + 1;
+            nodeCounts[event.dst] = (nodeCounts[event.dst] || 0) + 1;
+        });
+        return Object.entries(nodeCounts).map(([node, count]) => ({ node, count })).sort((a, b) => b.count - a.count);
+    }
+
+    function resetFiltersAndRender() {
+        state.filters = { severity: 0, timeBin: null, nodeId: null, resolution: 'macro' };
+        document.querySelectorAll('#severity-filter button, #resolution-filter button').forEach(btn => {
+            const p = btn.dataset.p;
+            const res = btn.dataset.res;
+            if (p) btn.classList.toggle('active', parseInt(p) === 0);
+            if (res) btn.classList.toggle('active', res === 'macro');
+        });
+        render();
+    }
+
+    // --- EVENT HANDLERS ---
+    function handleSeverityFilter(e) {
+        if (e.target.tagName === 'BUTTON') {
+            state.filters.severity = parseInt(e.target.dataset.p);
+            document.querySelectorAll('#severity-filter button').forEach(btn => btn.classList.toggle('active', btn === e.target));
+            state.filters.nodeId = null;
+            render();
+        }
+    }
+
+    function handleResolutionFilter(e) {
+        if (e.target.tagName === 'BUTTON') {
+            state.filters.resolution = e.target.dataset.res;
+            document.querySelectorAll('#resolution-filter button').forEach(btn => btn.classList.toggle('active', btn === e.target));
+            state.filters.timeBin = null;
+            state.filters.nodeId = null;
+            render();
+        }
+    }
+
+    function handleNodeClick(nodeId) {
+        state.filters.nodeId = state.filters.nodeId === nodeId ? null : nodeId;
+        render();
+        if (state.filters.nodeId) {
+            setTimeout(() => {
+                storyboardContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    }
+
+    // --- LLM INTEGRATION ---
+    async function callLocalProxy(messages) {
+        try {
+            const response = await fetch(API_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: state.apiKey,
+                    payload: {
+                        model: "swiss-ai/Apertus-70B",
+                        messages: messages
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
+            }
+            const data = await response.json();
+            return data.choices[0].message.content;
+        } catch (error) {
+            console.error("API Call failed:", error);
+            return null;
+        }
+    }
+
+    async function handleLlmQuery() {
+        const query = llmQueryInput.value.trim();
+        if (!query) return;
+
+        llmThoughtProcess.classList.remove('hidden');
+        llmThoughtProcess.innerHTML = `<p class="text-gray-400 animate-pulse">AI is thinking...</p>`;
+
+        const prompt = `You are an AI assistant that controls a dashboard by generating JSON commands. Your only output must be a single JSON object.
+        Available tools:
+        - set_filter(severity): severity can be 95 or 99.
+        - inspect_node(nodeId): nodeId is the name of the node to inspect.
+        - reset(): resets all filters.
+
+        User query: "${query}"
+
+        Generate the JSON command.`;
+
+        const responseContent = await callLocalProxy([{ role: 'user', content: prompt }]);
+
+        if (!responseContent) {
+            llmThoughtProcess.innerHTML = `<p class="text-red-400">Error communicating with AI. Is the Python proxy server running?</p>`;
+            return;
+        }
+
+        try {
+            const toolCall = JSON.parse(responseContent.match(/\{.*\}/s)[0]);
+            llmThoughtProcess.innerHTML = `<pre class="text-xs text-yellow-300">LLM Action: ${JSON.stringify(toolCall, null, 2)}</pre>`;
+
+            if (toolCall.tool === 'set_filter') {
+                document.querySelector(`#severity-filter button[data-p='${toolCall.params.severity}']`).click();
+            } else if (toolCall.tool === 'inspect_node') {
+                handleNodeClick(toolCall.params.nodeId);
+            } else if (toolCall.tool === 'reset') {
+                resetFiltersAndRender();
+            }
+        } catch (e) {
+            llmThoughtProcess.innerHTML = `<p class="text-red-400">AI returned an invalid command. Response: ${responseContent}</p>`;
+        }
+    }
+
+    async function handleAskAi() {
+        const diagnosis = document.getElementById('automated-diagnosis').textContent;
+        const prompt = `You are a network operations expert AI. Given the following anomaly diagnosis for node '${state.filters.nodeId}': "${diagnosis}". What is the likely root cause and what are the next 3 steps for investigation? Be concise and actionable.`;
+
+        aiCopilotResponse.classList.remove('hidden');
+        aiCopilotResponse.innerHTML = `<p class="text-gray-400 animate-pulse">AI Co-Pilot is thinking...</p>`;
+
+        const responseContent = await callLocalProxy([{ role: 'user', content: prompt }]);
+
+        if (responseContent) {
+            aiCopilotResponse.innerHTML = `<p class="font-semibold text-purple-400">AI Co-Pilot Analysis:</p><div class="text-sm text-gray-300 mt-2 space-y-2">${responseContent.replace(/\n/g, '<br>')}</div>`;
+        } else {
+            aiCopilotResponse.innerHTML = `<p class="text-red-400">Error communicating with AI. Is the Python proxy server running?</p>`;
+        }
+    }
+
+    // --- COMPONENT RENDERERS ---
+    let timelineChartInstance = null;
+    let correlationCharts = {};
+    let graphInstance = null;
+
+    function renderTimelineChart(timeseriesData, selectedBin) {
+        const ctx = document.getElementById('timelineChart').getContext('2d');
+        const labels = timeseriesData.map(d => d.timestamp_bin);
+        const data = timeseriesData.map(d => d.n_anomalies);
+        const backgroundColors = labels.map(label => label === selectedBin ? 'rgba(59, 130, 246, 0.8)' : 'rgba(59, 130, 246, 0.4)');
+        const timeWindow = TIME_WINDOWS[state.filters.resolution];
+
+        if (timelineChartInstance) timelineChartInstance.destroy();
+        timelineChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels, datasets: [{ data, backgroundColor: backgroundColors }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'logarithmic',
+                        ticks: { color: '#9ca3af', callback: (value) => Number(value.toString()).toLocaleString() },
+                        grid: { color: '#374151' }
+                    },
+                    x: { ticks: { color: '#9ca3af', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { display: false } }
+                },
+                plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: { title: (ctx) => `Time Window: ${ctx[0].label} - ${ctx[0].label + timeWindow - 1}` } } },
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const clickedBin = labels[elements[0].index];
+                        state.filters.timeBin = state.filters.timeBin === clickedBin ? null : clickedBin;
+                        state.filters.nodeId = null;
+                        render();
+                    }
+                }
+            }
+        });
+    }
+
+    function renderCorrelationPanel(events) {
+        const nodes = getFilteredNodes(events);
+        renderTopNodes(nodes, state.filters.nodeId, events.length);
+
+        const labelData = {};
+        const typeData = { add: 0, remove: 0 };
+        events.forEach(e => {
+            labelData[e.label] = (labelData[e.label] || 0) + 1;
+            typeData[e.event_type] = (typeData[e.event_type] || 0) + 1;
+        });
+
+        const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#d1d5db' } }, y: { ticks: { color: '#d1d5db' } } } };
+
+        if (correlationCharts.label) correlationCharts.label.destroy();
+        correlationCharts.label = new Chart(document.getElementById('labelChart'), { type: 'bar', data: { labels: Object.keys(labelData), datasets: [{ data: Object.values(labelData), backgroundColor: '#f59e0b' }] }, options: { ...chartOptions, indexAxis: 'y' } });
+
+        if (correlationCharts.type) correlationCharts.type.destroy();
+        correlationCharts.type = new Chart(document.getElementById('typeChart'), { type: 'doughnut', data: { labels: ['Unexpected Add', 'Missing Remove'], datasets: [{ data: [typeData.add, typeData.remove], backgroundColor: ['#f97316', '#a855f7'] }] }, options: { plugins: { legend: { position: 'bottom', labels: { color: '#d1d5db' } } } } });
+    }
+
+    function renderTopNodes(nodes, selectedNodeId, eventCount) {
+        const listEl = document.getElementById('top-nodes-list');
+        listEl.innerHTML = '';
+        correlationSummary.textContent = `Found ${eventCount} events involving ${nodes.length} unique nodes.`;
+
+        if (nodes.length === 0) {
+            listEl.innerHTML = '<p class="text-gray-500">No offenders match filters.</p>';
+            return;
+        }
+        const maxCount = nodes[0]?.count || 1;
+        nodes.slice(0, 10).forEach(node => {
+            const item = document.createElement('div');
+            const isSelected = node.node === selectedNodeId;
+            item.className = `offender-item p-2 rounded-md cursor-pointer transition-colors ${isSelected ? 'bg-blue-800' : 'hover:bg-gray-700'}`;
+            item.innerHTML = `<div class="flex justify-between items-center text-sm"><span class="font-medium truncate pr-2">${node.node}</span><span class="font-mono text-gray-400">${node.count}</span></div><div class="w-full bg-gray-600 rounded-full h-1.5 mt-1"><div class="bg-gradient-to-r from-yellow-500 to-red-500 h-1.5 rounded-full" style="width: ${(node.count / maxCount) * 100}%"></div></div>`;
+            item.addEventListener('click', () => handleNodeClick(node.node));
+            listEl.appendChild(item);
+        });
+    }
+
+    function renderAutomatedDiagnosis(events) {
+        const summaryEl = document.getElementById('automated-diagnosis');
+        if (events.length === 0) {
+            summaryEl.innerHTML = `<p class="font-semibold text-yellow-400">No anomalous events for ${state.filters.nodeId} with current filters.</p>`;
+            return;
+        }
+        const asSrcCount = events.filter(e => e.src === state.filters.nodeId).length;
+        const asDstCount = events.filter(e => e.dst === state.filters.nodeId).length;
+        const role = asSrcCount > asDstCount ? 'primarily a source' : 'primarily a destination';
+        const topLabel = Object.entries(events.reduce((acc, e) => { acc[e.label] = (acc[e.label] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])[0][0];
+
+        summaryEl.innerHTML = `
+            <p class="text-lg">
+                <b class="text-white">${state.filters.nodeId}</b> was involved in <b class="text-white">${events.length}</b> anomalous events.
+                It acted ${role} of these anomalies. The most frequent anomalous relation type was <b class="text-white">${topLabel}</b>.
+            </p>
+        `;
+    }
+
+    function renderContextualSubgraph(events) {
+        const container = document.getElementById('graph-inspector-container');
+        const nodes = new vis.DataSet();
+        const edges = new vis.DataSet();
+        const addedNodes = new Set();
+
+        nodes.add({ id: state.filters.nodeId, label: state.filters.nodeId, color: '#a855f7', size: 25, font: { size: 16 } });
+        addedNodes.add(state.filters.nodeId);
+
+        events.forEach(event => {
+            const otherNodeId = event.src === state.filters.nodeId ? event.dst : event.src;
+            if (!addedNodes.has(otherNodeId)) {
+                nodes.add({ id: otherNodeId, label: otherNodeId, color: '#374151' });
+                addedNodes.add(otherNodeId);
+            }
+
+            const score = event.anomaly_score;
+            const edgeColor = score > 0.95 ? '#ef4444' : '#f59e0b';
+
+            edges.add({
+                id: event.event_id, from: event.src, to: event.dst, label: event.label,
+                color: { color: edgeColor, highlight: '#60a5fa' },
+                dashes: event.event_type === 'remove', arrows: 'to',
+                title: `Event: ${event.event_type}\nScore: ${score.toFixed(4)}`
+            });
+        });
+
+        if (graphInstance) graphInstance.destroy();
+        graphInstance = new vis.Network(container, { nodes, edges }, {
+            nodes: { font: { color: '#e5e7eb' } },
+            edges: { font: { color: '#9ca3af', size: 10, align: 'top' }, smooth: true },
+            physics: { enabled: true, barnesHut: { gravitationalConstant: -2000, springLength: 150, springConstant: 0.04 } },
+            interaction: { hover: true, tooltipDelay: 200 }
+        });
+    }
+
+    function renderEventLog(events) {
+        const tbody = document.getElementById('events-table-body');
+        tbody.innerHTML = '';
+        if (events.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center py-8 text-gray-500">No events to display.</td></tr>';
+            return;
+        }
+        const fragment = document.createDocumentFragment();
+        events.forEach(event => {
+            const tr = document.createElement('tr');
+            tr.id = `event-row-${event.event_id}`;
+            tr.className = 'bg-gray-800 border-b border-gray-700';
+            const score = event.anomaly_score;
+            let scoreColorClass = score > 0.95 ? 'bg-red-900 text-red-300' : 'bg-yellow-900 text-yellow-300';
+
+            tr.innerHTML = `
+                <td class="px-4 py-2 text-gray-400">${event.timestamp}</td>
+                <td class="px-4 py-2 font-medium text-white">${event.src} -> ${event.dst} (${event.label})</td>
+                <td class="px-4 py-2 text-center"><span class="px-2 py-1 text-xs font-semibold rounded-full ${scoreColorClass}">${score.toFixed(4)}</span></td>
+            `;
+            fragment.appendChild(tr);
+        });
+        tbody.appendChild(fragment);
+    }
+
+    let replayInterval = null;
+    function setupReplayControls(events) {
+        if (replayInterval) clearInterval(replayInterval);
+        playBtn.disabled = events.length === 0;
+        replayStatus.textContent = `Ready to play ${events.length} events.`;
+
+        let currentIndex = 0;
+        const playHandler = () => {
+            if (currentIndex >= events.length) {
+                currentIndex = 0;
+                replayStatus.textContent = `Replay finished. Ready.`;
+                playBtn.disabled = false;
+                if(replayInterval) clearInterval(replayInterval);
+                return;
+            }
+
+            playBtn.disabled = true;
+            const event = events[currentIndex];
+            replayStatus.textContent = `Playing event @ t=${event.timestamp}`;
+
+            if (graphInstance) {
+                graphInstance.selectEdges([event.event_id]);
+                setTimeout(() => graphInstance.unselectAll(), 400);
+            }
+
+            document.querySelectorAll('#events-table-body tr').forEach(tr => tr.classList.remove('bg-blue-900'));
+            const row = document.getElementById(`event-row-${event.event_id}`);
+            if (row) {
+                row.classList.add('bg-blue-900');
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            currentIndex++;
+            replayInterval = setTimeout(playHandler, 500);
+        };
+
+        playBtn.onclick = playHandler;
+    }
+});
+</script>
+
+</body>
+</html>
