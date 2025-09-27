@@ -32,16 +32,18 @@ export const CSVUpload2 = ({ onFileUpload }: CSVUploadProps) => {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return console.log(response.json()); // or response.text() for plain text
+      return response.json(); // or response.text() for plain text
+      //return document.getElementById("textfield").textContent=JSON.stringify(response.json());
     })
     .then(data => {
       console.log(data);
+      document.getElementById("textfield").textContent=JSON.stringify(data);
     })
     .catch(error => {
       console.error('Error:', error);
     });
 
-    //document.getElementById("textfield").textContent="hi";
+    
     //window.location.href = "http://localhost:8000/";
 
   };
